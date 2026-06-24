@@ -29,7 +29,21 @@
   function $(s, el) { return (el || document).querySelector(s); }
   function esc(t) { return (t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function fillText(t) { return (t || "").replace(/\{\{(\w+)\}\}/g, function (_, k) { var v = (state.idea[k] || "").trim(); return v || ("[" + k + "]"); }); }
-  function fillHTML(t) { return esc(t).replace(/\{\{(\w+)\}\}/g, function (_, k) { var v = (state.idea[k] || "").trim(); return v ? '<span class="slot">' + esc(v) + '</span>' : '<span class="slot empty">[' + k + ']</span>'; }); }
+  function fillHTML(t) {
+    var html = esc(t);
+    // 1. Highlight list indicators: numbers (e.g. 1.) or dashes (e.g. -) at start of line
+    html = html.replace(/(^|\n)(\s*\d+\.|\s*[-•*])/g, '$1<span class="hl-bullet">$2</span>');
+    // 2. Highlight key labels/headers
+    html = html.replace(/(Requirements:|Output ONLY the complete HTML file\.|Output ONLY the CSS\.|Output ONLY the complete app\.js\.)/g, '<span class="hl-kw">$1</span>');
+    // 3. Highlight string literals (double quotes)
+    html = html.replace(/"([^"\n]*?)"/g, '<span class="hl-str">"$1"</span>');
+    // 4. Highlight placeholder slots
+    html = html.replace(/\{\{(\w+)\}\}/g, function (_, k) {
+      var v = (state.idea[k] || "").trim();
+      return v ? '<span class="slot">' + esc(v) + '</span>' : '<span class="slot empty">[' + k + ']</span>';
+    });
+    return html;
+  }
   function nounize(t) { return (t || "").replace(/\{\{(\w+)\}\}/g, function (_, k) { var v = (state.idea[k] || "").trim(); return v || k; }); }
 
   function pathCode(pkey) { var p = PATHS[pkey]; return (typeof p.code === "string") ? PATHS[p.code].code : p.code; }
@@ -111,6 +125,24 @@
   }
 
   /* ---------- steps ---------- */
+  function getStepSummary(st, done, on, tot) {
+    if (done) {
+      return '✨ All tasks complete!';
+    }
+    if (st.id === "plan") {
+      var appName = (state.idea.appname || "").trim();
+      if (appName) {
+        return '✏️ Building: <strong>' + esc(appName) + '</strong>' + (state.idea.users ? ' for ' + esc(state.idea.users) : '');
+      }
+      return '📝 Brainstorm your app idea to begin';
+    }
+    if (st.type === "build") {
+      return '🛠️ Code ' + esc(st.file || '') + ' · ' + on + '/' + tot + ' tasks done';
+    }
+    return '👉 ' + on + '/' + tot + ' tasks done';
+  }
+
+  /* ---------- steps ---------- */
   function renderSteps() {
     var host = $("#steps"); host.innerHTML = "";
     STEPS.forEach(function (base, i) {
@@ -120,13 +152,21 @@
       el.className = "step" + (done ? " done" : "") + (open ? " open" : "");
 
       var badge = st.checkpoint ? '<span class="badge">' + esc(st.checkpoint) + '</span>' : "";
+      
+      // Step head with level-select circular progress node
       var head = '<div class="step-head" data-i="' + i + '">' +
-        '<div class="ring">' + ring(tot ? on / tot : 0) +
-          '<div class="num">' + on + '/' + tot + '</div>' +
-          '<div class="tick"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div></div>' +
-        '<div class="step-titles"><div class="step-n">STEP ' + (i + 1) + badge + '</div>' +
-          '<div class="step-title">' + nounize(st.title) + '</div></div>' +
-        '<div class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>';
+        '<div class="ring level-node' + (done ? ' done' : '') + '">' +
+          ring(tot ? on / tot : 0) +
+          '<div class="num">' + (i + 1) + '</div>' +
+          '<div class="tick"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div>' +
+        '</div>' +
+        '<div class="step-titles">' +
+          '<div class="step-n">LEVEL ' + (i + 1) + ' · <span class="step-prog-frac">' + on + '/' + tot + ' done</span>' + badge + '</div>' +
+          '<div class="step-title">' + nounize(st.title) + '</div>' +
+          '<div class="step-summary">' + getStepSummary(st, done, on, tot) + '</div>' +
+        '</div>' +
+        '<div class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+      '</div>';
 
       var body = '<div class="step-body"><div class="intro intro-text">' + nounize(st.intro) + '</div>';
 
@@ -150,35 +190,78 @@
           '<button class="tab' + (ai ? " on" : "") + '" data-tab="ai">✨ Build with AI</button>' +
           '<button class="tab' + (!ai ? " on" : "") + '" data-tab="code">⌨️ Type the code</button></div>';
 
-        // AI panel
+        // AI panel with terminal styling dots
         body += '<div class="tabpanel' + (ai ? " on" : "") + '" data-panel="ai">';
-        if (st.prompt) body += '<div class="promptcard"><div class="promptbar"><span class="lbl">PASTE THIS TO YOUR AI</span>' +
-          '<button class="copybtn" data-copyprompt="' + esc(st.prompt) + '">Copy prompt</button></div>' +
-          '<div class="prompt" data-tpl="' + esc(st.prompt) + '">' + fillHTML(st.prompt) + '</div></div>';
+        if (st.prompt) {
+          body += '<div class="promptcard">' +
+            '<div class="promptbar">' +
+              '<div class="terminal-dots"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span></div>' +
+              '<span class="lbl">terminal - AI Prompt</span>' +
+              '<button class="copybtn" data-copyprompt="' + esc(st.prompt) + '">Copy prompt</button>' +
+            '</div>' +
+            '<div class="prompt" data-tpl="' + esc(st.prompt) + '">' + fillHTML(st.prompt) + '</div>' +
+          '</div>';
+        }
         body += '</div>';
 
-        // Code panel
+        // Code panel with terminal styling dots
         body += '<div class="tabpanel' + (!ai ? " on" : "") + '" data-panel="code">';
         body += '<p class="codeintro">No AI? No problem. Copy each block into the file shown, then save. Do every step and you\'ll have a working app.</p>';
         ops.forEach(function (op) {
-          body += '<div class="codeblock"><div class="codebar"><span class="fname">' + esc(op.label || op.file) + '</span>' +
-            '<button class="copybtn" data-copycode="1">Copy code</button></div>' +
-            '<pre class="code">' + esc(op.content.replace(/^\n+/, "")) + '</pre></div>';
+          body += '<div class="codeblock">' +
+            '<div class="codebar">' +
+              '<div class="terminal-dots"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span></div>' +
+              '<span class="fname">' + esc(op.label || op.file) + '</span>' +
+              '<button class="copybtn" data-copycode="1">Copy code</button>' +
+            '</div>' +
+            '<pre class="code">' + esc(op.content.replace(/^\n+/, "")) + '</pre>' +
+          '</div>';
         });
         body += '</div>';
 
-        // shared live preview (the expected result)
-        body += '<div class="preview"><div class="pv-head"><div class="pv-title">Expected result: <span class="what">' + nounize(st.expect || "") + '</span></div>' +
-          '<button class="pv-refresh" data-pv="' + i + '">↻ Refresh</button></div>' +
-          '<iframe class="pv-frame" data-pvframe="' + i + '" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Preview of step ' + (i + 1) + '"></iframe>' +
-          '<div class="pv-note">This is the example build. Yours will look similar but use your own idea. Try clicking inside it!</div></div>';
+        // embedded browser mockup wrapper for preview
+        body += '<div class="preview">' +
+          '<div class="pv-head">' +
+            '<div class="pv-title">Expected result: <span class="what">' + nounize(st.expect || "") + '</span></div>' +
+            '<button class="pv-refresh" data-pv="' + i + '">↻ Refresh</button>' +
+          '</div>' +
+          '<div class="browser-mockup">' +
+            '<div class="browser-bar">' +
+              '<div class="browser-dots"><span class="b-dot"></span><span class="b-dot"></span><span class="b-dot"></span></div>' +
+              '<div class="browser-nav">' +
+                '<span class="nav-arrow">&larr;</span>' +
+                '<span class="nav-arrow">&rarr;</span>' +
+              '</div>' +
+              '<div class="browser-address">' +
+                '<span class="lock-icon">🔒</span>' +
+                '<span class="url">localhost:3000/' + esc(st.file || 'app') + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<iframe class="pv-frame" data-pvframe="' + i + '" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Preview of step ' + (i + 1) + '"></iframe>' +
+          '</div>' +
+          '<div class="pv-note">This is the example build. Yours will look similar but use your own idea. Try clicking inside it!</div>' +
+        '</div>';
       }
 
       // go further ideas
       if (st.id === "yours") {
-        body += '<div class="callout think"><b>🚀 Ideas to go further</b><ul class="gf">';
+        body += '<div class="callout think">' +
+          '<div class="callout-icon">' +
+            '<svg class="illustrated-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+              '<circle cx="32" cy="28" r="20" fill="rgba(245, 158, 11, 0.1)"/>' +
+              '<path d="M32 8C20.95 8 12 16.95 12 28C12 34.68 15.24 40.61 20.25 44.29C23.09 46.37 24.85 49.56 25.13 53H38.87C39.15 49.56 40.91 46.37 43.75 44.29C48.76 40.61 52 34.68 52 28C52 16.95 43.05 8 32 8Z" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round"/>' +
+              '<path d="M28 28L32 20L36 28" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+              '<path d="M26 53H38" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>' +
+              '<path d="M28 58H36" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="callout-content">' +
+            '<span class="callout-title">💡 Ideas to go further</span>' +
+            '<ul class="gf">';
         PATHS[state.path].goFurther.forEach(function (g) { body += '<li>' + esc(g) + '</li>'; });
-        body += '</ul></div>';
+        body += '</ul>' +
+          '</div>' +
+        '</div>';
       }
 
       // reflections
@@ -187,8 +270,43 @@
         body += '<div class="reflect"><label>' + esc(r.label) + '</label><textarea data-reflect="' + rk + '" placeholder="Type your answer…">' + esc(state.reflect[rk] || "") + '</textarea></div>';
       });
 
-      if (st.type === "build") body += '<div class="callout stuck"><b>🆘 Stuck?</b><br>' + nounize(st.stuck || "") + '</div>';
-      if (st.type === "think") body += '<div class="callout think"><b>💡 Product thinking</b><br>This is what turns code into a real product people want.</div>';
+      // Redesigned soft friendly stuck alert callout
+      if (st.type === "build") {
+        body += '<div class="callout stuck">' +
+          '<div class="callout-icon">' +
+            '<svg class="illustrated-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+              '<circle cx="32" cy="32" r="24" fill="rgba(239, 68, 68, 0.08)" stroke="#F87171" stroke-width="3"/>' +
+              '<circle cx="32" cy="32" r="12" fill="#FFFFFF" stroke="#F87171" stroke-width="3"/>' +
+              '<path d="M32 8A24 24 0 0 1 48.97 15.03L40.49 23.51A12 12 0 0 0 32 20V8Z" fill="#F87171"/>' +
+              '<path d="M56 32A24 24 0 0 1 48.97 48.97L40.49 40.49A12 12 0 0 0 44 32H56Z" fill="#F87171"/>' +
+              '<path d="M32 56A24 24 0 0 1 15.03 48.97L23.51 40.49A12 12 0 0 0 32 44V56Z" fill="#F87171"/>' +
+              '<path d="M8 32A24 24 0 0 1 15.03 15.03L23.51 23.51A12 12 0 0 0 20 32H8Z" fill="#F87171"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="callout-content">' +
+            '<span class="callout-title">🆘 Stuck?</span>' +
+            '<p class="callout-text">' + nounize(st.stuck || "") + '</p>' +
+          '</div>' +
+        '</div>';
+      }
+      
+      if (st.type === "think") {
+        body += '<div class="callout think">' +
+          '<div class="callout-icon">' +
+            '<svg class="illustrated-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+              '<circle cx="32" cy="28" r="20" fill="rgba(245, 158, 11, 0.1)"/>' +
+              '<path d="M32 8C20.95 8 12 16.95 12 28C12 34.68 15.24 40.61 20.25 44.29C23.09 46.37 24.85 49.56 25.13 53H38.87C39.15 49.56 40.91 46.37 43.75 44.29C48.76 40.61 52 34.68 52 28C52 16.95 43.05 8 32 8Z" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round"/>' +
+              '<path d="M28 28L32 20L36 28" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+              '<path d="M26 53H38" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>' +
+              '<path d="M28 58H36" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="callout-content">' +
+            '<span class="callout-title">💡 Product thinking</span>' +
+            '<p class="callout-text">This is what turns code into a real product people want.</p>' +
+          '</div>' +
+        '</div>';
+      }
 
       body += '</div>';
       el.innerHTML = head + body;
