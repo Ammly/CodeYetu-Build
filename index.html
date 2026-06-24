@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your Own Web App | CodeYetu Hackathon</title>
+<meta name="description" content="Build a web app that solves a real problem, one step at a time. CodeYetu Web Development & Digital Entrepreneurship hackathon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Guide chrome: TailwindCSS (utilities), Three.js (hero), canvas-confetti (rewards) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>if(window.tailwind)tailwind.config={theme:{extend:{colors:{brand:{DEFAULT:'#00A651',dark:'#006B34',soft:'#DCFCE7'}},fontFamily:{disp:['Fredoka','sans-serif'],body:['Nunito','sans-serif'],mono:['"JetBrains Mono"','monospace']}}}}</script>
+<style>
+/* =======================================================================
+   CodeYetu v5 · Fredoka + Nunito + JetBrains Mono · Playful-Flat
+   ======================================================================= */
+:root{
+  /* brand greens */
+  --green:#00A651; --green-dark:#006B34; --green-soft:#DCFCE7;
+  /* accent palette */
+  --amber:#C47D00; --amber-soft:#FFF8DC;
+  --coral:#E05A1F;
+  /* surfaces */
+  --ink:#182820; --muted:#4D6B5A; --paper:#F0FBF4; --card:#FFFFFF;
+  --line:#C6E5D0; --danger:#DC2626;
+  /* fonts */
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --disp:'Fredoka',sans-serif; --body:'Nunito',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px}
+em{font-style:normal;color:var(--green-dark);font-weight:700}
+
+/* ── Header ─────────────────────────────────────────── */
+header.top{background:var(--card);border-bottom:2px solid var(--line);position:sticky;top:0;z-index:50;transition:box-shadow .2s}
+header.top.scrolled{box-shadow:0 4px 24px rgba(0,60,30,.10)}
+.top-inner{display:flex;align-items:center;gap:14px;padding:12px 0}
+.logo{font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:.01em;white-space:nowrap;color:var(--ink)}
+.logo .dot{color:var(--green)}
+.prog{flex:1;height:10px;background:var(--line);border-radius:999px;overflow:hidden}
+.prog>span{display:block;height:100%;width:0;background:linear-gradient(90deg,#00C060,var(--green));border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.prog-label{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;font-weight:500}
+.level{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--green-dark);white-space:nowrap}
+
+/* ── Hero ────────────────────────────────────────────── */
+.hero{padding:40px 0 8px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green-dark);font-weight:500}
+h1{font-family:var(--disp);font-weight:700;font-size:clamp(30px,7vw,46px);line-height:1.08;letter-spacing:.01em;margin:10px 0}
+.hero p{font-size:16.5px;color:var(--muted);max-width:52ch;line-height:1.65}
+
+section{padding:28px 0}
+.sec-head{font-family:var(--disp);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:16px}
+
+/* ── Path picker ─────────────────────────────────────── */
+.paths{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.path{appearance:none;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:20px;padding:18px 16px;cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;font-family:var(--body);box-shadow:0 2px 8px rgba(0,60,30,.05)}
+.path:hover{border-color:var(--green);box-shadow:0 6px 24px rgba(0,166,81,.13)}
+.path:active{transform:scale(.98)}
+.path.sel{border-color:var(--green);background:#EDFBF3;box-shadow:0 0 0 3px rgba(0,166,81,.14)}
+.path .emoji{font-size:28px;display:block;margin-bottom:10px}
+.path .pname{font-family:var(--disp);font-weight:600;font-size:17px;margin:0 0 4px;color:var(--ink)}
+.path .pdesc{font-size:13px;color:var(--muted);line-height:1.45}
+
+/* ── Idea panel ──────────────────────────────────────── */
+.idea{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 2px 12px rgba(0,60,30,.06)}
+.idea h3{font-family:var(--disp);font-size:22px;font-weight:700;margin-bottom:4px;color:var(--ink)}
+.idea .hint{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--ink)}
+.field .sub{font-weight:500;color:var(--muted);font-size:12px}
+.field input{width:100%;font-family:var(--body);font-size:15px;padding:11px 14px;border:2px solid var(--line);border-radius:13px;background:var(--paper);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.field input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(0,166,81,.12)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Steps ───────────────────────────────────────────── */
+.step{background:var(--card);border:2px solid var(--line);border-radius:22px;margin-bottom:14px;overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:0 1px 4px rgba(0,60,30,.05)}
+.step.done{border-color:var(--green)}
+.step.open{box-shadow:0 6px 28px rgba(0,60,30,.09)}
+.step-head{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer}
+
+/* progress ring */
+.ring{flex:none;width:40px;height:40px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{stroke:var(--line);stroke-width:3.5}
+.ring .fg{stroke:var(--green);stroke-linecap:round;stroke-width:3.5;transition:stroke-dashoffset .5s cubic-bezier(.4,0,.2,1)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted)}
+.step.done .ring .num{color:var(--green)}
+.ring .tick{position:absolute;inset:0;display:none;place-items:center}
+.step.done .ring .tick{display:grid}
+.step.done .ring .num{display:none}
+.ring .tick svg{transform:none;width:16px;height:16px;stroke:var(--green);stroke-width:3;fill:none}
+
+.step-titles{flex:1;min-width:0}
+.step-n{font-family:var(--mono);font-size:11px;color:var(--green-dark);letter-spacing:.05em}
+.step-n .badge{background:var(--amber-soft);color:#7A4500;padding:2px 9px;border-radius:999px;margin-left:8px;font-size:10px;font-weight:700}
+.step-title{font-family:var(--disp);font-weight:700;font-size:18px;line-height:1.25;margin-top:3px;color:var(--ink)}
+.chev{flex:none;color:var(--muted);transition:transform .2s}
+.step.open .chev{transform:rotate(180deg)}
+
+.step-body{display:none;padding:0 20px 24px}
+.step.open .step-body{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.step-body .intro{font-size:15px;margin:14px 0;line-height:1.7;color:var(--ink)}
+
+/* tasks */
+.tasks{list-style:none;margin:8px 0 4px}
+.task{display:flex;align-items:flex-start;gap:12px;padding:10px 0;cursor:pointer;font-size:15px;color:var(--ink)}
+.task .box{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;margin-top:1px;background:var(--paper);transition:background .15s,border-color .15s,transform .22s cubic-bezier(.34,1.56,.64,1)}
+.task.on .box{background:var(--green);border-color:var(--green);transform:scale(1.1)}
+.task .box svg{width:13px;height:13px;stroke:#fff;stroke-width:3.5;fill:none;opacity:0;transition:.15s}
+.task.on .box svg{opacity:1}
+.task .txt{transition:.15s}
+.task.on .txt{color:var(--muted);text-decoration:line-through}
+
+/* ── Prompt block ────────────────────────────────────── */
+.promptcard{background:#0C1E11;border-radius:18px;overflow:hidden;margin:16px 0;box-shadow:0 4px 20px rgba(0,0,0,.20)}
+.promptbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#132E1A}
+.promptbar .lbl{font-family:var(--mono);font-size:11px;color:#6DD99A;letter-spacing:.06em;font-weight:500}
+.copybtn{appearance:none;border:none;font-family:var(--body);font-size:13px;font-weight:700;background:var(--green);color:#fff;padding:7px 18px;border-radius:999px;cursor:pointer;transition:background .15s,transform .12s,box-shadow .12s}
+.copybtn:hover{background:#00C060;transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,166,81,.32)}
+.copybtn:active{transform:none;box-shadow:none}
+.copybtn.copied,.copybtn.copied:hover{transform:none;box-shadow:none;background:#132E1A;color:#6DD99A}
+.prompt{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#C8E8D4;padding:16px;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto}
+.prompt .slot{color:#FFD479;background:rgba(255,200,0,.14);border-radius:4px;padding:0 4px;font-weight:600}
+.prompt .slot.empty{color:#FF9AA9;background:rgba(220,38,38,.15)}
+
+/* ── Expected-result preview ─────────────────────────── */
+.preview{margin:16px 0}
+.preview .pv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.preview .pv-title{font-family:var(--disp);font-weight:600;font-size:15px;color:var(--ink)}
+.preview .pv-title .what{color:var(--muted);font-weight:500;font-family:var(--body);font-size:13px}
+.pv-refresh{appearance:none;border:2px solid var(--line);background:var(--card);font-size:13px;color:var(--muted);padding:5px 14px;border-radius:999px;cursor:pointer;font-family:var(--body);font-weight:600;transition:border-color .15s,color .15s}
+.pv-refresh:hover{border-color:var(--green);color:var(--green-dark)}
+.pv-frame{width:100%;height:280px;border:2px solid var(--line);border-radius:16px;background:#fff;display:block}
+.pv-note{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* ── Reveal (code tab) ───────────────────────────────── */
+.reveal{margin:14px 0}
+.reveal>summary{cursor:pointer;list-style:none;font-family:var(--body);font-weight:700;font-size:14px;color:var(--green-dark);background:var(--green-soft);border:2px solid #A7F3C0;border-radius:14px;padding:11px 16px;display:flex;align-items:center;gap:8px}
+.reveal>summary::-webkit-details-marker{display:none}
+.reveal>summary .arrow{transition:transform .2s}
+.reveal[open]>summary .arrow{transform:rotate(90deg)}
+.codeblock{margin:10px 0}
+.codebar{display:flex;align-items:center;justify-content:space-between;background:#132E1A;border-radius:14px 14px 0 0;padding:9px 14px}
+.codebar .fname{font-family:var(--mono);font-size:11px;color:#6DD99A;font-weight:500}
+.code{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:#C8E8D4;background:#0C1E11;padding:16px;border-radius:0 0 14px 14px;white-space:pre;overflow:auto;max-height:320px}
+
+/* ── Callouts ────────────────────────────────────────── */
+.callout{border-radius:16px;padding:14px 18px;font-size:14px;margin:14px 0;border:2px solid;line-height:1.65}
+.expect{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
+.stuck{background:#FFF5F5;border-color:#FECACA;color:#B91C1C}
+.think{background:var(--amber-soft);border-color:#FDE68A;color:#7A4500}
+.callout b{font-weight:700}.callout ul{margin:6px 0 0 18px}.callout li{margin:4px 0}
+
+.steps-mini{margin:12px 0;font-size:15px}
+code.inline{font-family:var(--mono);font-size:12.5px;background:var(--green-soft);color:var(--green-dark);padding:2px 7px;border-radius:7px;font-weight:600}
+
+/* ── Reflect textarea ────────────────────────────────── */
+.reflect{margin:14px 0}
+.reflect label{display:block;font-weight:700;font-size:14px;margin-bottom:6px;color:var(--ink)}
+.reflect textarea{width:100%;font-family:var(--body);font-size:15px;padding:12px 14px;border:2px solid var(--line);border-radius:13px;background:var(--paper);resize:vertical;min-height:60px;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.reflect textarea:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(196,125,0,.12)}
+
+.gf{margin:8px 0 0 18px;font-size:14.5px}.gf li{margin:5px 0}
+
+/* ── Celebrate ───────────────────────────────────────── */
+.celebrate{background:linear-gradient(135deg,#00D468 0%,var(--green) 55%,#005A2A 100%);color:#fff;border-radius:24px;padding:32px;text-align:center;margin-bottom:16px;display:none;box-shadow:0 8px 36px rgba(0,166,81,.28)}
+.celebrate.show{display:block;animation:pop .4s cubic-bezier(.34,1.4,.64,1)}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.celebrate h3{font-family:var(--disp);font-size:30px;font-weight:700;margin-bottom:8px}
+.celebrate p{font-size:16px;opacity:.96;line-height:1.6}
+
+footer{padding:36px 0 64px;color:var(--muted);font-size:14px;text-align:center}
+footer .reset{appearance:none;border:none;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:14px;font-family:var(--body)}
+
+@media(max-width:560px){
+  .paths{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  .prog-label{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── Hero 3D stage, mode toggle, delight ─────────────── */
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center}
+.build-stage{position:relative;min-height:240px;border-radius:22px;background:radial-gradient(120% 120% at 50% 0%,#D1FAE5 0%,#F0FBF4 70%);border:2px solid var(--line);overflow:hidden;box-shadow:0 4px 16px rgba(0,60,30,.07)}
+#build3d{width:100%;height:260px;display:block;cursor:grab;touch-action:none}
+#build3d:active{cursor:grabbing}
+.build-cap{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;background:linear-gradient(transparent,rgba(240,251,244,.92))}
+.build-cap b{color:var(--green-dark)}
+
+.build-fallback{position:absolute;inset:0;display:none;flex-direction:column-reverse;align-items:center;justify-content:center;gap:6px;padding:24px}
+.build-stage.nowebgl .build-fallback{display:flex}
+.build-stage.nowebgl #build3d{display:none}
+.fb-block{width:78px;height:20px;border-radius:8px;border:2px dashed var(--line);background:transparent;transition:.4s;transform:translateY(6px);opacity:.5}
+.fb-block.on{border-style:solid;border-color:var(--green);background:var(--green);box-shadow:0 4px 14px rgba(0,166,81,.25);transform:none;opacity:1}
+
+/* mode toggle */
+.modebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px 18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,60,30,.05)}
+.modebar .q{font-weight:700;font-size:15px;color:var(--ink)}
+.modeseg{display:inline-flex;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.modebtn{appearance:none;border:none;background:none;font-family:var(--body);font-size:14px;font-weight:700;color:var(--muted);padding:9px 18px;border-radius:12px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
+.modebtn.on{background:var(--green-dark);color:#fff}
+
+/* per-step tabs */
+.tabs{display:flex;gap:4px;margin:16px 0 0;border-bottom:2px solid var(--line)}
+.tab{appearance:none;border:none;background:none;font-family:var(--body);font-weight:700;font-size:14px;color:var(--muted);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:7px;transition:color .15s,border-color .15s}
+.tab.on{color:var(--green-dark);border-bottom-color:var(--green)}
+.tab:hover{color:var(--ink)}
+.tabpanel{display:none}
+.tabpanel.on{display:block;animation:fade .22s ease}
+.tabpanel.active{display:block;animation:fade .22s ease}
+.codeintro{font-size:14px;color:var(--muted);margin:14px 0 4px;line-height:1.65}
+.code-note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.codeblock{margin:10px 0}
+.tip{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);margin-top:10px}
+
+/* accent theming per path */
+body[data-accent="shop"]{--green:#C47D00;--green-dark:#8B5800;--green-soft:#FFFBDC}
+body[data-accent="custom"]{--green:#7C3AED;--green-dark:#5B21B6;--green-soft:#EDE9FE}
+.prog>span,.celebrate{transition:width .5s cubic-bezier(.4,0,.2,1),background .4s}
+
+/* hero living background */
+.hero{position:relative;overflow:hidden;min-height:300px;display:flex;flex-direction:column;justify-content:center}
+#bg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.hero-inner{position:relative;z-index:1}
+.hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 55% at 65% 15%,rgba(0,166,81,.09) 0%,transparent 65%),
+             radial-gradient(ellipse 50% 45% at 15% 85%,rgba(0,166,81,.06) 0%,transparent 55%)}
+
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-family:var(--mono);font-size:11px;color:var(--green-dark);margin-top:16px;box-shadow:0 2px 12px rgba(0,60,30,.08);font-weight:600}
+.hero-badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,166,81,.5)}70%{box-shadow:0 0 0 9px rgba(0,166,81,0)}100%{box-shadow:0 0 0 0 rgba(0,166,81,0)}}
+
+/* delight */
+@keyframes ringpop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.ring.justdone{animation:ringpop .45s ease}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none}
+
+/* path card accent bar */
+.path{position:relative;overflow:hidden;touch-action:manipulation}
+.path::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:var(--green);border-radius:0 0 4px 4px;
+  transform:scaleX(0);transform-origin:center;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.path:hover::after,.path.sel::after{transform:scaleX(1)}
+.path:hover{transform:translateY(-2px)}
+
+/* keyboard focus ring */
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:6px}
+
+@media(max-width:680px){
+  .hero-grid{grid-template-columns:1fr}
+  .build-stage{order:-1;min-height:200px}
+  #build3d{height:200px}
+}
+
+</style>
+</head>
+<body data-accent="tracker">
+
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="logo">CodeYetu<span class="dot">.</span> Build</div>
+    <div class="prog"><span id="progbar"></span></div>
+    <span class="level" id="level">Let's go</span>
+    <div class="prog-label" id="proglabel">0%</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <canvas id="bg"></canvas>
+    <div class="hero-inner">
+      <div class="eyebrow">Web Dev &amp; Digital Entrepreneurship</div>
+      <h1>Build a web app that solves a real problem.</h1>
+      <p>Pick a starting point, describe your idea once, then follow the steps. Build it <em>with an AI helper</em> or <em>type the code yourself</em>, and watch your app come to life at every step.</p>
+      <div class="hero-badge"><span class="pulse"></span> <span id="badge-text">9 steps · 1 working app · your idea</span></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">1. Pick your starting point</div>
+    <div class="paths" id="paths"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">2. Describe your idea</div>
+    <div class="idea">
+      <h3>My app</h3>
+      <p class="hint">Fill these in. Everything you type drops into the steps below. That's how your app becomes <em>yours</em>.</p>
+      <div class="field"><label>App name</label><input id="f-appname" type="text" placeholder="e.g. ShambaTrack"></div>
+      <div class="field"><label>Who is it for? <span class="sub">your users</span></label><input id="f-users" type="text" placeholder="e.g. small farmers in my area"></div>
+      <div class="field"><label>What problem does it solve? <span class="sub">one sentence</span></label><input id="f-problem" type="text" placeholder="e.g. they forget which crops to plant each season"></div>
+      <div class="two">
+        <div class="field"><label>The main thing <span class="sub">singular</span></label><input id="f-thing" type="text" placeholder="e.g. crop"></div>
+        <div class="field"><label>More than one <span class="sub">plural</span></label><input id="f-things" type="text" placeholder="e.g. crops"></div>
+      </div>
+      <div class="field"><label>What details does each one have? <span class="sub">these become the input boxes</span></label><input id="f-fields" type="text" placeholder="e.g. a name and a season"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">3. Build it, one step at a time</div>
+    <div class="celebrate" id="celebrate">
+      <h3>🎉 You built a working app!</h3>
+      <p>Every step is done. You took a real problem and turned it into something people can use. Now share your link and get ready to pitch.</p>
+    </div>
+    <div id="steps"></div>
+  </section>
+</div>
+
+<footer class="wrap">
+  Made for the CodeYetu Hackathon · <button class="reset" id="reset">reset my progress</button>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<script src="content.js"></script>
+<script src="engine.js"></script>
+</body>
+</html>
