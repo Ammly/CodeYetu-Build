@@ -280,7 +280,7 @@
   });
 
   /* ---------- accent + delight ---------- */
-  var ACCENT = { tracker: "#00A651", shop: "#e08a00", custom: "#7c5cff" };
+  var ACCENT = { tracker: "#00A651", shop: "#C47D00", custom: "#7C3AED" };
   function applyAccent() {
     document.body.dataset.accent = state.path;
     if (window.__setHeroColor) window.__setHeroColor(ACCENT[state.path] || ACCENT.tracker);
@@ -300,58 +300,154 @@
     })();
   }
 
-  /* ---------- Three.js hero (guarded, light, optional) ---------- */
+  /* ---------- Three.js hero — building blocks (guarded, light, optional) ---------- */
   function initHero() {
     var canvas = document.getElementById("bg");
     if (!canvas || !window.THREE) return;
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var weak = (navigator.hardwareConcurrency || 4) <= 2;
-    if (reduce || weak) return; // gradient/clean hero instead — protects low-end devices
+
+    /* hard guards — must be first */
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (reduce || (navigator.hardwareConcurrency || 4) <= 2) return;
+
     var renderer;
     try { renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false }); }
     catch (e) { return; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
-    var scene = new THREE.Scene();
+    /* scene */
+    var scene  = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
     camera.position.z = 14;
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    var dir = new THREE.DirectionalLight(0xffffff, 0.7); dir.position.set(5, 8, 10); scene.add(dir);
 
-    var mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(ACCENT[state.path] || "#00A651"), transparent: true, opacity: 0.85, roughness: 0.45, metalness: 0.1 });
-    var blocks = [], geo = new THREE.BoxGeometry(1, 1, 1);
-    for (var i = 0; i < 11; i++) {
-      var m = new THREE.Mesh(geo, mat);
-      var s = 0.6 + Math.random() * 1.5; m.scale.set(s, s, s);
-      m.position.set((Math.random() - 0.5) * 22, (Math.random() - 0.5) * 11, (Math.random() - 0.5) * 6);
-      m.rotation.set(Math.random() * 6, Math.random() * 6, 0);
-      m.userData = { sp: 0.1 + Math.random() * 0.3, ph: Math.random() * 6, ax: Math.random() * 0.4 };
-      scene.add(m); blocks.push(m);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    var key  = new THREE.DirectionalLight(0xffffff, 0.90); key.position.set(6, 10, 12); scene.add(key);
+    var fill = new THREE.DirectionalLight(0xffffff, 0.22); fill.position.set(-5, -3, 5);  scene.add(fill);
+
+    /* colour state — chases accent changes via lerp every frame */
+    var baseHex = ACCENT[state.path] || "#00A651";
+    var targetC = new THREE.Color(baseHex);
+    var curC    = new THREE.Color(baseHex);
+
+    /* three material tiers: solid / translucent / metallic */
+    var M = [
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.88, roughness: 0.40, metalness: 0.10 }),
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.55, roughness: 0.58, metalness: 0.00 }),
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.76, roughness: 0.20, metalness: 0.45 }),
+    ];
+    M.forEach(function (m) { m.color.copy(curC); });
+
+    /* geometry library: cube · H-brick · V-brick · diamond · pyramid */
+    var G = [
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.BoxGeometry(1.9, 0.55, 0.55),
+      new THREE.BoxGeometry(0.55, 1.9, 0.55),
+      new THREE.OctahedronGeometry(0.65, 0),
+      new THREE.TetrahedronGeometry(0.72, 0),
+    ];
+
+    /* spawn 22 blocks */
+    var blocks = [];
+    for (var i = 0; i < 22; i++) {
+      var mesh = new THREE.Mesh(G[i % G.length], M[i % M.length]);
+      var s = 0.40 + Math.random() * 1.55;
+      mesh.scale.set(s, s * (0.75 + Math.random() * 0.5), s);
+      var by = (Math.random() - 0.5) * 13;
+      mesh.position.set((Math.random() - 0.5) * 26, by, (Math.random() - 0.5) * 7);
+      mesh.rotation.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28);
+      mesh.userData = {
+        rx:    (Math.random() - 0.5) * 0.011,  /* per-frame rotation X */
+        ry:    (Math.random() - 0.5) * 0.011,  /* per-frame rotation Y */
+        sp:    0.40 + Math.random() * 1.5,     /* drift speed */
+        ph:    Math.random() * 6.28,            /* drift phase */
+        amp:   0.5  + Math.random() * 1.2,     /* drift amplitude */
+        baseY: by,                              /* stable vertical anchor */
+      };
+      scene.add(mesh); blocks.push(mesh);
     }
-    window.__setHeroColor = function (hex) { mat.color = new THREE.Color(hex); };
 
-    function size() {
-      var w = canvas.clientWidth || canvas.parentElement.clientWidth, h = canvas.clientHeight || 300;
-      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    /* hook used by applyAccent() to change colour */
+    window.__setHeroColor = function (hex) { targetC.set(hex); };
+
+    /* resize — ResizeObserver when available, resize event as fallback */
+    var _W = 0, _H = 0;
+    function resize() {
+      var w = (canvas.parentElement || canvas).clientWidth || 600;
+      var h = canvas.clientHeight || 300;
+      if (w === _W && h === _H) return;
+      _W = w; _H = h;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / Math.max(h, 1);
+      camera.updateProjectionMatrix();
     }
-    size(); window.addEventListener("resize", size);
+    resize();
+    if (window.ResizeObserver) { new ResizeObserver(resize).observe(canvas.parentElement || canvas); }
+    else { window.addEventListener("resize", resize); }
 
-    var mx = 0, my = 0;
-    window.addEventListener("mousemove", function (e) { mx = (e.clientX / window.innerWidth - 0.5); my = (e.clientY / window.innerHeight - 0.5); });
+    /* pointer + touch parallax */
+    var px = 0, py = 0;
+    window.addEventListener("mousemove", function (e) {
+      px = (e.clientX / window.innerWidth  - 0.5) * 2;
+      py = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+    window.addEventListener("touchmove", function (e) {
+      if (e.touches.length) {
+        px = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
+        py = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+      }
+    }, { passive: true });
 
-    var running = true;
-    document.addEventListener("visibilitychange", function () { running = !document.hidden; if (running) loop(); });
+    /* scroll — fade canvas as hero leaves viewport */
+    var fade = 1;
+    window.addEventListener("scroll", function () {
+      fade = Math.max(0, 1 - window.scrollY / 300);
+      canvas.style.opacity = fade;
+    }, { passive: true });
+
+    /* RAF loop — proper pause when tab is hidden */
+    var rafId = null;
+    var cx = 0, cy = 0;    /* lerped camera x/y */
+    var t0 = Date.now();
+
+    function stopLoop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+    function startLoop() { if (!rafId) { rafId = requestAnimationFrame(loop); } }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) stopLoop(); else startLoop();
+    });
+
     function loop() {
-      if (!running) return;
-      var t = Date.now() * 0.001;
-      blocks.forEach(function (b) { b.rotation.x += 0.0025 * b.userData.sp * 6; b.rotation.y += 0.003 * b.userData.sp * 6; b.position.y += Math.sin(t * b.userData.sp + b.userData.ph) * 0.004; });
-      camera.position.x += (mx * 3 - camera.position.x) * 0.05;
-      camera.position.y += (-my * 2 - camera.position.y) * 0.05;
+      rafId = requestAnimationFrame(loop);
+      var t = (Date.now() - t0) * 0.001;
+
+      /* colour lerp — always runs so colour is ready when hero scrolls back */
+      curC.lerp(targetC, 0.025);
+      M[0].color.copy(curC);
+      M[1].color.copy(curC).multiplyScalar(0.78);
+      M[2].color.copy(curC).multiplyScalar(1.20);
+      M[2].color.r = Math.min(1, M[2].color.r);
+      M[2].color.g = Math.min(1, M[2].color.g);
+      M[2].color.b = Math.min(1, M[2].color.b);
+
+      /* drift + spin — always runs so position is live when hero reappears */
+      blocks.forEach(function (b) {
+        b.rotation.x += b.userData.rx;
+        b.rotation.y += b.userData.ry;
+        b.position.y = b.userData.baseY + Math.sin(t * b.userData.sp + b.userData.ph) * 0.28 * b.userData.amp;
+      });
+
+      /* camera lazily tracks pointer */
+      cx += (px * 2.6 - cx) * 0.04;
+      cy += (-py * 1.6 - cy) * 0.04;
+      camera.position.x = cx;
+      camera.position.y = cy;
       camera.lookAt(0, 0, 0);
+
+      /* skip GPU render when hero is scrolled away */
+      if (fade <= 0.01) return;
       renderer.render(scene, camera);
-      requestAnimationFrame(loop);
     }
-    loop();
+
+    startLoop();
   }
 
   /* ---------- init ---------- */
