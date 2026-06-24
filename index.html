@@ -108,35 +108,80 @@ section{padding:28px 0}
 
 /* ── Path picker ─────────────────────────────────────── */
 .paths{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.path{
-  appearance:none;
-  text-align:left;
-  background:var(--card);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border:1.5px solid rgba(226, 232, 240, 0.8);
-  border-radius:20px;
-  padding:18px 16px;
-  cursor:pointer;
-  transition:border-color .2s, transform .15s, box-shadow .2s, background-color .2s;
-  font-family:var(--body);
-  box-shadow:0 8px 32px 0 rgba(31, 38, 135, 0.03), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-  min-height:44px;
+.path {
+  appearance: none;
+  text-align: left;
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(226, 232, 240, 0.8);
+  border-radius: 24px;
+  padding: 22px 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: var(--body);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
 }
-.path:hover{
-  border-color:var(--brand);
-  box-shadow:0 12px 40px color-mix(in srgb, var(--brand) 8%, transparent);
-  transform:translateY(-2px);
+.path:hover {
+  border-color: var(--brand);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--brand) 12%, transparent);
+  transform: translateY(-4px) scale(1.05);
 }
-.path:active{transform:scale(.98)}
-.path.sel{
-  border-color:var(--brand);
-  background:color-mix(in srgb, var(--brand) 5%, transparent);
-  box-shadow:0 0 0 4px color-mix(in srgb, var(--brand) 15%, transparent);
+.path:active {
+  transform: scale(0.98) translateY(-2px);
 }
-.path .emoji{font-size:28px;display:block;margin-bottom:10px}
-.path .pname{font-family:var(--disp);font-weight:700;font-size:17px;margin:0 0 4px;color:var(--ink);letter-spacing:-.01em}
-.path .pdesc{font-size:13px;color:var(--muted);line-height:1.45}
+.path.sel {
+  border: 3px solid var(--brand);
+  background: color-mix(in srgb, var(--brand) 4%, #ffffff);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand) 18%, transparent), 
+              0 16px 32px color-mix(in srgb, var(--brand) 20%, transparent);
+  transform: scale(1.03) translateY(-2px);
+}
+.card-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: transform 0.25s ease;
+}
+.path:hover .card-icon-wrapper {
+  transform: scale(1.1) rotate(2deg);
+}
+.card-icon {
+  width: 24px;
+  height: 24px;
+}
+.tracker-icon-bg {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+.shop-icon-bg {
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+}
+.custom-icon-bg {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+}
+.path .pname {
+  font-family: var(--disp);
+  font-weight: 800;
+  font-size: 17px;
+  margin: 0 0 6px;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.path .pdesc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
 
 /* ── Idea panel ──────────────────────────────────────── */
 .idea{
@@ -150,25 +195,64 @@ section{padding:28px 0}
 }
 .idea h3{font-family:var(--disp);font-size:22px;font-weight:800;margin-bottom:4px;color:var(--ink);letter-spacing:-.02em}
 .idea .hint{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
-.field{margin-bottom:16px}
-.field label{display:block;font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--ink)}
-.field .sub{font-weight:500;color:var(--muted);font-size:12px}
-.field input{
-  width:100%;
-  font-family:var(--body);
-  font-size:15px;
-  padding:12px 14px;
-  border:1.5px solid var(--line);
-  border-radius:13px;
-  background:rgba(255,255,255,0.6);
-  color:var(--ink);
-  transition:border-color .15s,box-shadow .15s;
-  min-height:44px;
+/* Floating labels input structure */
+.field {
+  position: relative;
+  margin-top: 14px;
+  margin-bottom: 18px;
 }
-.field input:focus{
-  outline:none;
-  border-color:var(--brand-dark);
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
+.field input {
+  width: 100%;
+  padding: 24px 16px 8px; /* Extra top padding to make room for label */
+  font-family: var(--body);
+  font-size: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+  min-height: 58px;
+  outline: none;
+}
+.field label {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: left top;
+  display: block;
+}
+.field .sub {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: 4px;
+  transition: opacity 0.2s ease;
+}
+/* Trigger floating state: when focused, or when input placeholder is NOT shown (value is present) */
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label {
+  transform: translateY(-11px) scale(0.8);
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+.field input:focus {
+  border-color: var(--brand);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
+}
+/* Placeholders are hidden initially, and fade in on focus */
+.field input::placeholder {
+  color: transparent;
+  transition: color 0.15s ease;
+}
+.field input:focus::placeholder {
+  color: #94A3B8;
 }
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
@@ -857,14 +941,32 @@ footer .reset{appearance:none;border:none;background:none;color:var(--muted);tex
     <div class="idea">
       <h3>My app</h3>
       <p class="hint">Fill these in. Everything you type drops into the steps below. That's how your app becomes <em>yours</em>.</p>
-      <div class="field"><label for="f-appname">App name</label><input id="f-appname" type="text" placeholder="e.g. ShambaTrack"></div>
-      <div class="field"><label for="f-users">Who is it for? <span class="sub">your users</span></label><input id="f-users" type="text" placeholder="e.g. small farmers in my area"></div>
-      <div class="field"><label for="f-problem">What problem does it solve? <span class="sub">one sentence</span></label><input id="f-problem" type="text" placeholder="e.g. they forget which crops to plant each season"></div>
-      <div class="two">
-        <div class="field"><label for="f-thing">The main thing <span class="sub">singular</span></label><input id="f-thing" type="text" placeholder="e.g. crop"></div>
-        <div class="field"><label for="f-things">More than one <span class="sub">plural</span></label><input id="f-things" type="text" placeholder="e.g. crops"></div>
+      <div class="field">
+        <input id="f-appname" type="text" placeholder="e.g., Space Potato Tracker">
+        <label for="f-appname">App name</label>
       </div>
-      <div class="field"><label for="f-fields">What details does each one have? <span class="sub">these become the input boxes</span></label><input id="f-fields" type="text" placeholder="e.g. a name and a season"></div>
+      <div class="field">
+        <input id="f-users" type="text" placeholder="e.g., Astronauts on Mars">
+        <label for="f-users">Who is it for? <span class="sub">your users</span></label>
+      </div>
+      <div class="field">
+        <input id="f-problem" type="text" placeholder="e.g., They lose track of their floating space potatoes">
+        <label for="f-problem">What problem does it solve? <span class="sub">one sentence</span></label>
+      </div>
+      <div class="two">
+        <div class="field">
+          <input id="f-thing" type="text" placeholder="e.g., Potato">
+          <label for="f-thing">The main thing <span class="sub">singular</span></label>
+        </div>
+        <div class="field">
+          <input id="f-things" type="text" placeholder="e.g., Potatoes">
+          <label for="f-things">More than one <span class="sub">plural</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <input id="f-fields" type="text" placeholder="e.g., weight, speed, and launch date">
+        <label for="f-fields">What details does each one have? <span class="sub">these become input fields</span></label>
+      </div>
     </div>
   </section>
 

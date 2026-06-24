@@ -85,7 +85,33 @@
     Object.keys(PATHS).forEach(function (key) {
       var p = PATHS[key], b = document.createElement("button");
       b.className = "path" + (state.path === key ? " sel" : "");
-      b.innerHTML = '<div class="emoji">' + p.emoji + '</div><div class="pname">' + esc(p.name) + '</div><div class="pdesc">' + esc(p.desc) + '</div>';
+      
+      var icon = "";
+      if (key === "tracker") {
+        icon = '<div class="card-icon-wrapper tracker-icon-bg">' +
+          '<svg class="card-icon tracker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>' +
+            '<path d="M9 11l3 3 5-5"/>' +
+          '</svg>' +
+        '</div>';
+      } else if (key === "shop") {
+        icon = '<div class="card-icon-wrapper shop-icon-bg">' +
+          '<svg class="card-icon shop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>' +
+          '</svg>' +
+        '</div>';
+      } else {
+        icon = '<div class="card-icon-wrapper custom-icon-bg">' +
+          '<svg class="card-icon custom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M4.5 16.5c-1.5 1.26-2 3.5-2 3.5s2.24-.5 3.5-2C9.5 14.5 12 11.5 12 11.5L11.5 11S8.5 13.5 5.5 16.5z"/>' +
+            '<path d="M22 2s-1.5 4.5-5 8c-3.5 3.5-5 4-5 4s.5-1.5 4-5c3.5-3.5 6-7 6-7z"/>' +
+            '<path d="M9 15l-3 6 4-1 5-5-2-2-4 2z"/>' +
+            '<circle cx="15" cy="9" r="1.5" fill="currentColor"/>' +
+          '</svg>' +
+        '</div>';
+      }
+
+      b.innerHTML = icon + '<div class="pname">' + esc(p.name) + '</div><div class="pdesc">' + esc(p.desc) + '</div>';
       b.addEventListener("click", function () {
         var preset = PATHS[key].idea;
         SLOTS.forEach(function (s) {
