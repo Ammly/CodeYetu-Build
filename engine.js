@@ -383,6 +383,12 @@
         var allAfter = STEPS.every(function (s, ix) { return stepDone(stepAt(ix)); });
         renderSteps();
         animateRing(sidx);
+        
+        // Trigger WebGL glowing particle burst and morphing shapes delight effect
+        if (window.triggerWebGLDelight) {
+          window.triggerWebGLDelight(!before && after);
+        }
+        
         if (!before && after) {
           /* ring pop on step completion */
           var stepEls = document.querySelectorAll(".step");
@@ -490,11 +496,11 @@
     var targetC = new THREE.Color(baseHex);
     var curC    = new THREE.Color(baseHex);
 
-    /* three material tiers: solid / translucent / metallic */
+    /* three material tiers: solid / translucent / metallic with emissive glow support */
     var M = [
-      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.88, roughness: 0.40, metalness: 0.10 }),
-      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.55, roughness: 0.58, metalness: 0.00 }),
-      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.76, roughness: 0.20, metalness: 0.45 }),
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.88, roughness: 0.40, metalness: 0.10, emissive: new THREE.Color(0,0,0) }),
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.55, roughness: 0.58, metalness: 0.00, emissive: new THREE.Color(0,0,0) }),
+      new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.76, roughness: 0.20, metalness: 0.45, emissive: new THREE.Color(0,0,0) }),
     ];
     M.forEach(function (m) { m.color.copy(curC); });
 
@@ -512,29 +518,97 @@
     for (var i = 0; i < 22; i++) {
       var mesh = new THREE.Mesh(G[i % G.length], M[i % M.length]);
       var s = 0.40 + Math.random() * 1.55;
-      mesh.scale.set(s, s * (0.75 + Math.random() * 0.5), s);
+      var sy = s * (0.75 + Math.random() * 0.5);
+      mesh.scale.set(s, sy, s);
+      var bx = (Math.random() - 0.5) * 26;
       var by = (Math.random() - 0.5) * 13;
-      mesh.position.set((Math.random() - 0.5) * 26, by, (Math.random() - 0.5) * 7);
+      var bz = (Math.random() - 0.5) * 7;
+      mesh.position.set(bx, by, bz);
       mesh.rotation.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28);
       mesh.userData = {
-        rx:    (Math.random() - 0.5) * 0.011,  /* per-frame rotation X */
-        ry:    (Math.random() - 0.5) * 0.011,  /* per-frame rotation Y */
+        rx:    (Math.random() - 0.5) * 0.011,  /* current X spin */
+        ry:    (Math.random() - 0.5) * 0.011,  /* current Y spin */
+        baseRx: (Math.random() - 0.5) * 0.011, /* standard X spin */
+        baseRy: (Math.random() - 0.5) * 0.011, /* standard Y spin */
         sp:    0.40 + Math.random() * 1.5,     /* drift speed */
         ph:    Math.random() * 6.28,            /* drift phase */
         amp:   0.5  + Math.random() * 1.2,     /* drift amplitude */
-        baseY: by,                              /* stable vertical anchor */
+        scaleX: s,
+        scaleY: sy,
+        scaleZ: s,
+        currentScaleMult: 1.0,
+        targetScaleMult: 1.0,
+        baseX: bx,
+        baseY: by,
+        baseZ: bz,
+        orbitSpeed: 0.15 + Math.random() * 0.25,
       };
       scene.add(mesh); blocks.push(mesh);
     }
 
-    /* hook used by applyAccent() to change colour */
+    /* particle systems list */
+    var activeParticleSystems = [];
+
+    /* window hook for step completion reward delight */
+    window.triggerWebGLDelight = function (isStepCompleted) {
+      // 1. Morph materials to glow
+      var colorHex = isStepCompleted ? (ACCENT[state.path] || "#10B981") : "#38BDF8";
+      var glowColor = new THREE.Color(colorHex);
+      M.forEach(function (m) {
+        m.emissive.copy(glowColor).multiplyScalar(isStepCompleted ? 1.5 : 0.6);
+      });
+
+      // 2. Morph floating shapes scale & spin
+      blocks.forEach(function (b) {
+        b.userData.targetScaleMult = isStepCompleted ? 2.6 : 1.7;
+        b.userData.rx = b.userData.baseRx * (isStepCompleted ? 9.0 : 4.5);
+        b.userData.ry = b.userData.baseRy * (isStepCompleted ? 9.0 : 4.5);
+      });
+
+      // 3. Spawn a burst of glowing particles
+      var pCount = isStepCompleted ? 90 : 45;
+      var geom = new THREE.BufferGeometry();
+      var positions = [];
+      var velocities = [];
+
+      for (var j = 0; j < pCount; j++) {
+        // Start particles close to the center
+        positions.push((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 3.5 + Math.random() * 8.5;
+        var vz = (Math.random() - 0.5) * 6;
+        velocities.push(Math.cos(angle) * speed, Math.sin(angle) * speed, vz);
+      }
+
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      var mat = new THREE.PointsMaterial({
+        color: isStepCompleted ? 0x10B981 : 0x38BDF8,
+        size: 0.28,
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      var pSystem = new THREE.Points(geom, mat);
+      pSystem.userData = {
+        velocities: velocities,
+        age: 0,
+        maxAge: 70, // frame life
+      };
+
+      scene.add(pSystem);
+      activeParticleSystems.push(pSystem);
+    };
+
+    /* hook used by applyAccent() to change color */
     window.__setHeroColor = function (hex) { targetC.set(hex); };
 
-    /* resize — ResizeObserver when available, resize event as fallback */
+    /* resize — resize to full-screen viewport dimensions */
     var _W = 0, _H = 0;
     function resize() {
-      var w = (canvas.parentElement || canvas).clientWidth || 600;
-      var h = canvas.clientHeight || 300;
+      var w = window.innerWidth;
+      var h = window.innerHeight;
       if (w === _W && h === _H) return;
       _W = w; _H = h;
       renderer.setSize(w, h, false);
@@ -542,10 +616,9 @@
       camera.updateProjectionMatrix();
     }
     resize();
-    if (window.ResizeObserver) { new ResizeObserver(resize).observe(canvas.parentElement || canvas); }
-    else { window.addEventListener("resize", resize); }
+    window.addEventListener("resize", resize);
 
-    /* pointer + touch parallax */
+    /* pointer + touch coordinates tracking */
     var px = 0, py = 0;
     window.addEventListener("mousemove", function (e) {
       px = (e.clientX / window.innerWidth  - 0.5) * 2;
@@ -558,16 +631,17 @@
       }
     }, { passive: true });
 
-    /* scroll — fade canvas as hero leaves viewport */
+    /* scroll — fade canvas absolute background smoothly as hero section leaves viewport */
     var fade = 1;
     window.addEventListener("scroll", function () {
-      fade = Math.max(0, 1 - window.scrollY / 300);
+      fade = Math.max(0, 1 - window.scrollY / 450);
       canvas.style.opacity = fade;
     }, { passive: true });
 
     /* RAF loop — proper pause when tab is hidden */
     var rafId = null;
-    var cx = 0, cy = 0;    /* lerped camera x/y */
+    var cx = 0, cy = 0;     /* lerped camera position */
+    var mx = 0, my = 0;     /* lerped mouse coordinate in 3D coordinates */
     var t0 = Date.now();
 
     function stopLoop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
@@ -590,12 +664,76 @@
       M[2].color.g = Math.min(1, M[2].color.g);
       M[2].color.b = Math.min(1, M[2].color.b);
 
-      /* drift + spin — always runs so position is live when hero reappears */
+      // Decay materials emissive glow back to dark
+      M.forEach(function (m) {
+        m.emissive.lerp(new THREE.Color(0, 0, 0), 0.05);
+      });
+
+      // Lerp mouse coordinates in 3D scene space
+      mx += (px * 13 - mx) * 0.05;
+      my += (-py * 7 - my) * 0.05;
+
+      /* drift + spin + cursor orbiting attraction — runs in background so state is active */
       blocks.forEach(function (b) {
+        // Decay spin speed back to base speeds
+        b.userData.rx += (b.userData.baseRx - b.userData.rx) * 0.04;
+        b.userData.ry += (b.userData.baseRy - b.userData.ry) * 0.04;
+
         b.rotation.x += b.userData.rx;
         b.rotation.y += b.userData.ry;
-        b.position.y = b.userData.baseY + Math.sin(t * b.userData.sp + b.userData.ph) * 0.28 * b.userData.amp;
+
+        // Base drift position
+        var bx = b.userData.baseX;
+        var by = b.userData.baseY + Math.sin(t * b.userData.sp + b.userData.ph) * 0.28 * b.userData.amp;
+
+        // Orbit around the mouse cursor when mouse is close
+        var dx = bx - mx;
+        var dy = by - my;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        var influence = Math.max(0, 1 - dist / 12);
+
+        var angle = t * b.userData.orbitSpeed + b.userData.ph;
+        var orbitR = 1.0 + influence * 2.2;
+        var ox = Math.cos(angle) * orbitR * influence;
+        var oy = Math.sin(angle) * orbitR * influence;
+
+        b.position.x = bx + ox;
+        b.position.y = by + oy;
+
+        // Lerp scale back to base scale dimensions
+        b.userData.targetScaleMult += (1.0 - b.userData.targetScaleMult) * 0.05;
+        b.userData.currentScaleMult += (b.userData.targetScaleMult - b.userData.currentScaleMult) * 0.12;
+
+        b.scale.set(
+          b.userData.scaleX * b.userData.currentScaleMult,
+          b.userData.scaleY * b.userData.currentScaleMult,
+          b.userData.scaleZ * b.userData.currentScaleMult
+        );
       });
+
+      /* particle systems update loop */
+      for (var k = activeParticleSystems.length - 1; k >= 0; k--) {
+        var ps = activeParticleSystems[k];
+        var posArr = ps.geometry.attributes.position.array;
+        var vels = ps.userData.velocities;
+        for (var j = 0; j < posArr.length; j += 3) {
+          posArr[j] += vels[j] * 0.016;
+          posArr[j+1] += vels[j+1] * 0.016;
+          posArr[j+2] += vels[j+2] * 0.016;
+          vels[j] *= 0.97;
+          vels[j+1] *= 0.97;
+          vels[j+2] *= 0.97;
+        }
+        ps.geometry.attributes.position.needsUpdate = true;
+        ps.userData.age++;
+        ps.material.opacity = 1 - (ps.userData.age / ps.userData.maxAge);
+        if (ps.userData.age >= ps.userData.maxAge) {
+          scene.remove(ps);
+          ps.geometry.dispose();
+          ps.material.dispose();
+          activeParticleSystems.splice(k, 1);
+        }
+      }
 
       /* camera lazily tracks pointer */
       cx += (px * 2.6 - cx) * 0.04;
