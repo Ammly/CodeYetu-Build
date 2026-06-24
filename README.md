@@ -2,6 +2,8 @@
 
 Welcome to the **CodeYetu Hackathon Web Development Track** guide and interactive app builder! This project is designed to help you brainstorm, build, and deploy your very own web application step-by-step.
 
+🌐 **Live Link**: [code-yetu-build.vercel.app](https://code-yetu-build.vercel.app/)
+
 For details about the track, judging criteria, and schedules, visit the official [CodeYetu Hackathon Web Development Track](https://hackathon.codeyetu.org/tracks/web-development).
 
 ---
