@@ -214,9 +214,44 @@
     fr.srcdoc = previewDoc(filesUpTo(i));
   }
 
+  /* animate progress ring fg arc from empty → current fill */
+  function animateRing(idx) {
+    var fgs = (idx >= 0)
+      ? (function () { var els = document.querySelectorAll(".step"); return els[idx] ? [els[idx].querySelector(".ring .fg")] : []; }())
+      : document.querySelectorAll(".ring .fg");
+    Array.prototype.forEach.call(fgs, function (fg) {
+      if (!fg) return;
+      var arr    = parseFloat(fg.getAttribute("stroke-dasharray")  || 100);
+      var target = fg.getAttribute("stroke-dashoffset") || "0";
+      fg.style.transition        = "none";
+      fg.style.strokeDashoffset  = arr;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          fg.style.transition       = "stroke-dashoffset .5s cubic-bezier(.4,0,.2,1)";
+          fg.style.strokeDashoffset = target;
+        });
+      });
+    });
+  }
+
   function wireSteps() {
     document.querySelectorAll(".step-head").forEach(function (h) {
-      h.addEventListener("click", function () { var i = +h.getAttribute("data-i"); state.open = (state.open === i ? -1 : i); save(); renderSteps(); });
+      h.addEventListener("click", function () {
+        var i = +h.getAttribute("data-i");
+        /* animate collapse before re-render when closing the open step */
+        if (state.open === i) {
+          var stepEl = h.closest(".step");
+          var body   = stepEl && stepEl.querySelector(".step-body");
+          if (body) {
+            body.style.animation = "stepCollapse .2s ease forwards";
+            var chev = stepEl.querySelector(".chev");
+            if (chev) chev.style.animation = "chevClose .2s ease forwards";
+            setTimeout(function () { state.open = -1; save(); renderSteps(); }, 185);
+            return;
+          }
+        }
+        state.open = (state.open === i ? -1 : i); save(); renderSteps();
+      });
     });
     document.querySelectorAll(".task").forEach(function (li) {
       li.addEventListener("click", function () {
@@ -229,7 +264,16 @@
         var after = st ? stepDone(st) : false;
         var allAfter = STEPS.every(function (s, ix) { return stepDone(stepAt(ix)); });
         renderSteps();
-        if (!before && after) { if (allAfter) bigConfetti(); else smallConfetti(rect); }
+        animateRing(sidx);
+        if (!before && after) {
+          /* ring pop on step completion */
+          var stepEls = document.querySelectorAll(".step");
+          if (sidx >= 0 && stepEls[sidx]) {
+            var rEl = stepEls[sidx].querySelector(".ring");
+            if (rEl) { rEl.classList.remove("justdone"); void rEl.offsetWidth; rEl.classList.add("justdone"); }
+          }
+          if (allAfter) bigConfetti(); else smallConfetti(rect);
+        }
       });
     });
     document.querySelectorAll(".tab").forEach(function (b) {
@@ -452,6 +496,7 @@
 
   /* ---------- init ---------- */
   applyAccent(); renderPaths(); fillFields(); wireFields(); renderSteps();
+  requestAnimationFrame(function () { animateRing(-1); });
   initHero();
   /* scroll shadow on sticky header — pure visual, no state */
   (function(){var h=document.querySelector('header.top');if(!h)return;window.addEventListener('scroll',function(){h.classList.toggle('scrolled',window.scrollY>4);},{passive:true});})();

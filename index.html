@@ -97,21 +97,26 @@ section{padding:28px 0}
 .step-n{font-family:var(--mono);font-size:11px;color:var(--green-dark);letter-spacing:.05em}
 .step-n .badge{background:var(--amber-soft);color:#7A4500;padding:2px 9px;border-radius:999px;margin-left:8px;font-size:10px;font-weight:700}
 .step-title{font-family:var(--disp);font-weight:700;font-size:18px;line-height:1.25;margin-top:3px;color:var(--ink)}
-.chev{flex:none;color:var(--muted);transition:transform .2s}
-.step.open .chev{transform:rotate(180deg)}
+.chev{flex:none;color:var(--muted)}
+.step.open .chev{transform:rotate(180deg);animation:chevRot .24s cubic-bezier(.4,0,.2,1) both}
+@keyframes chevRot{from{transform:none}to{transform:rotate(180deg)}}
+@keyframes chevClose{from{transform:rotate(180deg)}to{transform:none}}
 
 .step-body{display:none;padding:0 20px 24px}
-.step.open .step-body{display:block;animation:fade .25s ease}
-@keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.step.open .step-body{display:block;animation:stepOpen .32s cubic-bezier(.4,0,.2,1) both}
+@keyframes stepOpen{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes stepCollapse{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-7px)}}
 .step-body .intro{font-size:15px;margin:14px 0;line-height:1.7;color:var(--ink)}
 
 /* tasks */
 .tasks{list-style:none;margin:8px 0 4px}
 .task{display:flex;align-items:flex-start;gap:12px;padding:10px 0;cursor:pointer;font-size:15px;color:var(--ink)}
-.task .box{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;margin-top:1px;background:var(--paper);transition:background .15s,border-color .15s,transform .22s cubic-bezier(.34,1.56,.64,1)}
-.task.on .box{background:var(--green);border-color:var(--green);transform:scale(1.1)}
-.task .box svg{width:13px;height:13px;stroke:#fff;stroke-width:3.5;fill:none;opacity:0;transition:.15s}
-.task.on .box svg{opacity:1}
+.task .box{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;margin-top:1px;background:var(--paper);transition:background .15s,border-color .15s}
+.task.on .box{background:var(--green);border-color:var(--green);animation:taskPop .38s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes taskPop{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1.1)}}
+.task .box svg{width:13px;height:13px;stroke:#fff;stroke-width:3.5;fill:none;opacity:0;stroke-dasharray:24;stroke-dashoffset:24}
+.task.on .box svg{opacity:1;animation:checkDraw .22s .1s ease-out both}
+@keyframes checkDraw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
 .task .txt{transition:.15s}
 .task.on .txt{color:var(--muted);text-decoration:line-through}
 
@@ -210,8 +215,9 @@ footer .reset{appearance:none;border:none;background:none;color:var(--muted);tex
 .tab.on{color:var(--green-dark);border-bottom-color:var(--green)}
 .tab:hover{color:var(--ink)}
 .tabpanel{display:none}
-.tabpanel.on{display:block;animation:fade .22s ease}
-.tabpanel.active{display:block;animation:fade .22s ease}
+.tabpanel.on{display:block;animation:tabIn .22s cubic-bezier(.4,0,.2,1) both}
+.tabpanel.active{display:block;animation:tabIn .22s ease both}
+@keyframes tabIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
 .codeintro{font-size:14px;color:var(--muted);margin:14px 0 4px;line-height:1.65}
 .code-note{font-size:13px;color:var(--muted);margin:8px 0 0}
 .codeblock{margin:10px 0}
